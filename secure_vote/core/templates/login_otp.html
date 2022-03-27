@@ -1,0 +1,31 @@
+{% extends "base.html" %} {% block content %}
+<section style="max-width: 500px; margin: 0 auto" class="container">
+  <div class="card mt-5">
+    <div class="card-header">
+      <h5 class="mb-2">OTP is sent to Your Mobile No</h5>
+    </div>
+    <div class="card-body">
+      <form action="{% url 'login_otp' %}" method="POST">
+        {% csrf_token %}
+        <div class="mb-2">
+          <label for="otp" class="form-label">Enter OTP</label>
+          <input
+            type="password"
+            name="otp"
+            class="form-control"
+            id="otp"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <div class="text-muted">
+            Dont Have An Account?
+            <a class="ml-2" href="{% url 'register' %}">Register</a>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-dark">Submit</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock content %}

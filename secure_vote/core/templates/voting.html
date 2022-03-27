@@ -1,0 +1,49 @@
+{% extends "base.html" %} {% block content %}
+<section
+  style="max-width: 700px; margin: 0 auto"
+  class="mt-4"
+  class="container"
+>
+  <form action="{% url 'submit' %}" method="POST">
+    {% csrf_token %}
+    <h1 class="fw-bold mb-3">Cast your vote</h1>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th style="text-align: center" scope="col">Party Logo</th>
+          <th style="text-align: center" scope="col">Party Name</th>
+          <th style="text-align: center" scope="col">Candidate Name</th>
+          <th style="text-align: center" scope="col">Vote</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for candidate in constituency.party_set.all %}
+        <tr>
+          <td style="text-align: center">
+            <img
+              src="{{ candidate.party_pic }}"
+              alt=""
+              height="42"
+              width="42"
+            />
+          </td>
+          <td style="text-align: center">{{ candidate.party_name }}</td>
+          <td style="text-align: center">{{ candidate.candidate }}</td>
+          <td style="text-align: center">
+            <button
+              name="candidate"
+              type="submit"
+              value="{{candidate.candidate}}"
+              class="btn btn-dark"
+            >
+              Vote
+            </button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </form>
+</section>
+
+{% endblock content %}

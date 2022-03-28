@@ -1,6 +1,18 @@
 {% extends "base.html" %} {% block content %}
-<section>
-  <div class="px-4 py-5 my-5 text-center">
+<section style="max-width: 750px; margin: 0 auto" class="container mt-4">
+  {% if user.is_authenticated %}
+  <div class="">
+    <div class="alert alert-primary" role="alert">
+      <h4 class="alert-heading">Voter Detail</h4>
+      <p>
+        <b>UniqueID :</b> {{user.username}} | <b>Name :</b> {{user.name}} |
+        <b>Age :</b> {{user.age}} | <b> Phone:</b> {{user.phone}} |
+        <b>Constituency:</b> {{user.c_id}}
+      </p>
+    </div>
+  </div>
+  {% endif %}
+  <div class="px-2 py-5 my-5 text-center">
     <img
       class="d-block mx-auto mb-4"
       src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d4/Election_Commission_of_India_logo.svg/1200px-Election_Commission_of_India_logo.svg.png"

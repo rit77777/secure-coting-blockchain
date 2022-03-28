@@ -3,7 +3,6 @@ from django.contrib.auth.models import AbstractUser
 from django.utils.timezone import now
 
 
-
 class UniqueID(models.Model):
     unique_id = models.CharField(max_length=10, primary_key=True)
     name = models.CharField(max_length=200,)
@@ -26,19 +25,10 @@ class Constituency(models.Model):
     c_name = models.CharField(max_length=100, null=True)
     pub_date = models.DateTimeField('date published', default=now)
     is_active = models.BooleanField(default=False)
+    node_address = models.URLField(max_length=200, null=True)
 
     def __str__(self):
         return self.c_name
-
-
-class Candidate(models.Model):
-    candidate_id = models.CharField(max_length=10, primary_key=True)
-    candidate_name = models.CharField(max_length=100, null=True)
-    party_name = models.CharField(max_length=100, null=True)
-    candidate_pic = models.CharField(max_length=500, blank=True)
-
-    def __str__(self):
-        return self.candidate_name
 
 
 class Party(models.Model):

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth import authenticate, login, logout
 
 import json
@@ -25,7 +25,7 @@ candidates = Party.objects.all()
 candidates = list(candidates)
 blockchain.create_candidates(candidates)
 
-URL = "http://127.0.0.1:8000"
+BLOCKCHAIN_NODE_ADDRESS = "http://127.0.0.1:8000"
 
 
 # ------------Registration And Login-----------------------
@@ -138,7 +138,11 @@ def login_page(request):
             messages.error(request, 'You have already voted')
             return redirect('login')
 
-        constituency = Constituency.objects.get(c_id=voter.c_id)
+        try:
+            constituency = Constituency.objects.get(c_id=voter.c_id)
+        except:
+            messages.error(request, 'Error in contituency, please contact admin')
+            return redirect('login')
 
         if not constituency.is_active:
             messages.error(request, 'Voting in your constituency is currently not active')
@@ -232,14 +236,14 @@ def submit(request):
                 'voterhash': voter_hashed_value
             }
 
-            response = requests.post(f"{URL}/new_transaction/", json=vote_transaction, headers={'Content-type': 'application/json'})
+            response = requests.post(f"{BLOCKCHAIN_NODE_ADDRESS}/new_transaction/", json=vote_transaction, headers={'Content-type': 'application/json'})
 
             response_data = response.json()
             print(response_data)
 
             if response.status_code == 201:
                 voter.vote_done = True
-                # voter.save()  # change this 
+                voter.save()  # change this 
                 return render(request, 'success.html', {'voter_details': data})
             else:
                 return render(request, 'error.html', {'error_message': response_data['error']})
@@ -254,7 +258,7 @@ def success(request):
 
 @login_required(login_url='login')
 def mine(request):
-    requests.get(f"{URL}/mine_block/")
+    requests.get(f"{BLOCKCHAIN_NODE_ADDRESS}/mine_block/")
     return redirect('mine_success')
 
 
@@ -267,7 +271,7 @@ def mine_success(request):
 
 def all_votes(request):
     vote_data = []
-    response = requests.get(f"{URL}/get_chain")
+    response = requests.get(f"{BLOCKCHAIN_NODE_ADDRESS}/get_chain")
     if response.status_code == 200:
         chain_data = json.loads(response.content)
         for block in chain_data["chain"]:
@@ -303,6 +307,38 @@ def chart_votes(request):
     print("chart", values_data)
     return render(request, 'count_votes_graph.html', {'count': values_data, 'names': keys_data})
 
+
+# ------------Change Nodes-----------------------
+@user_passes_test(lambda u: u.is_superuser)
+def change_node(request):
+    if request.method == 'POST':
+        global BLOCKCHAIN_NODE_ADDRESS
+        node_address = request.POST.get('nodeaddr')
+        BLOCKCHAIN_NODE_ADDRESS = node_address
+        return render(request, 'change_node_success.html', {'node_address': BLOCKCHAIN_NODE_ADDRESS})
+    else:
+        return render(request, 'change_node.html')
+
+@user_passes_test(lambda u: u.is_superuser)
+def register_node(request):
+    if request.method == 'POST':
+        global BLOCKCHAIN_NODE_ADDRESS
+        node_address = request.POST.get('nodeaddr')
+        # headers = {
+        # 'Content-Type': 'application/json',
+        # }
+
+        # data = '{'+f'"node_address": "{BLOCKCHAIN_NODE_ADDRESS}"'+'}'
+
+        # response = requests.post(f'{node_address}/register_with', headers=headers, data=data)
+        # print(response.text)
+        return render(request, 'register_node_success.html', {'registered_node': node_address})
+    else:
+        return render(request, 'register_node.html')
+
+@user_passes_test(lambda u: u.is_superuser)
+def connected_node(request):
+    return render(request, 'connected_node.html', {'connected_node': BLOCKCHAIN_NODE_ADDRESS})
 
 # ------------Blockchain calls-----------------------
 

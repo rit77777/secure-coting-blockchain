@@ -2,7 +2,7 @@ from django.contrib import admin
 
 # Register your models here.
 
-from .models import Candidate, Party, RegisteredVoters, UniqueID, Constituency
+from .models import  Party, RegisteredVoters, UniqueID, Constituency
 
 
 admin.site.site_header = "Secure Voting Admin"
@@ -14,12 +14,11 @@ class PartyInline(admin.TabularInline):
 
 
 class ConstituencyAdmin(admin.ModelAdmin):
-    fieldsets = [(None, {'fields': ['c_id', 'c_name', 'is_active']}),
+    fieldsets = [(None, {'fields': ['c_id', 'c_name', 'is_active', 'node_address']}),
                  ('Date Information', {'fields': ['pub_date'], 'classes': ['collapse']}), ]
     inlines = [PartyInline]
 
 
-admin.site.register(Candidate)
 admin.site.register(RegisteredVoters)
 admin.site.register(UniqueID)
 admin.site.register(Constituency, ConstituencyAdmin)

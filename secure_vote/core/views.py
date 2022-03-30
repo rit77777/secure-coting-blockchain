@@ -17,15 +17,15 @@ from .blockchain import Blockchain
 
 # ------------Initializing blockchain-----------------------
 
-blockchain = Blockchain()
+# blockchain = Blockchain()
 
-blockchain.create_genesis_block()
+# blockchain.create_genesis_block()
 
-candidates = Party.objects.all()
-candidates = list(candidates)
-blockchain.create_candidates(candidates)
+# candidates = Party.objects.all()
+# candidates = list(candidates)
+# blockchain.create_candidates(candidates)
 
-BLOCKCHAIN_NODE_ADDRESS = "http://127.0.0.1:8000"
+BLOCKCHAIN_NODE_ADDRESS = "http://127.0.0.1:5000"
 
 
 # ------------Registration And Login-----------------------
@@ -203,6 +203,12 @@ def logout_page(request):
 # ------------Voting Phase-----------------------
 
 def home(request):
+    if request.user.is_authenticated:
+        global BLOCKCHAIN_NODE_ADDRESS
+        constituency = Constituency.objects.get(c_id=request.user.c_id)
+        BLOCKCHAIN_NODE_ADDRESS = constituency.node_address
+        print("constituency address: ", constituency.node_address)
+        print("CONSTITUENCY ADDRESS: ", BLOCKCHAIN_NODE_ADDRESS)
     return render(request, 'landing.html')
 
 
@@ -232,8 +238,8 @@ def submit(request):
             voter_hashed_value = sha256(voter_hash_string.encode()).hexdigest()
 
             vote_transaction = {
-                'candidate': request.POST.get('candidate'),
-                'voterhash': voter_hashed_value
+                "candidate": request.POST.get('candidate'),
+                "voterhash": voter_hashed_value
             }
 
             response = requests.post(f"{BLOCKCHAIN_NODE_ADDRESS}/new_transaction/", json=vote_transaction, headers={'Content-type': 'application/json'})
@@ -243,7 +249,7 @@ def submit(request):
 
             if response.status_code == 201:
                 voter.vote_done = True
-                voter.save()  # change this 
+                # voter.save()  # change this 
                 return render(request, 'success.html', {'voter_details': data})
             else:
                 return render(request, 'error.html', {'error_message': response_data['error']})
@@ -281,26 +287,39 @@ def all_votes(request):
 
         print("final", vote_data)
     
-    print(len(blockchain.chain))
-    if len(blockchain.chain) > 1:
-        not_tampered = blockchain.is_valid_chain()
-    else:
-        not_tampered = True
-    print(not_tampered)
-    return render(request, 'all_votes.html', {'vote_details': vote_data, 'chain_not_tampered': not_tampered})
+    # print(len(blockchain.chain))
+    # if len(blockchain.chain) > 1:
+    #     not_tampered = blockchain.is_valid_chain()
+    # else:
+    not_tampered = True
+    # print(not_tampered)
+    # return render(request, 'all_votes.html', {'vote_details': vote_data, 'chain_not_tampered': not_tampered})
 
-    # return render(request, 'all_votes.html', {'vote_details': vote_data})
+    return render(request, 'all_votes.html', {'vote_details': vote_data})
 
+
+def fetch_votes_and_count():
+    vote_count = {}
+    res = requests.get(f'{BLOCKCHAIN_NODE_ADDRESS}/chain')
+    data = res.json()['chain']
+    
+    for i in data:
+        for j in i['transactions']:
+            if j['candidate'] in vote_count:
+                vote_count[j['candidate']] += 1
+            else:
+                vote_count[j['candidate']] = 1
+    return vote_count
 
 def count_votes(request):
-    data = blockchain.get_result()
-    print(data)
+    data = fetch_votes_and_count()
+    print("count_votes()", data)
     return render(request, 'count_votes.html', {'vote_count': data})
 
 
 def chart_votes(request):
-    data = blockchain.get_result()
-    print(data)
+    data = fetch_votes_and_count()
+    print("chart_votes()", data)
     keys_data = list(data.keys())
     print("chart", keys_data)
     values_data = list(data.values())
@@ -324,14 +343,14 @@ def register_node(request):
     if request.method == 'POST':
         global BLOCKCHAIN_NODE_ADDRESS
         node_address = request.POST.get('nodeaddr')
-        # headers = {
-        # 'Content-Type': 'application/json',
-        # }
+        headers = {
+        'Content-Type': 'application/json',
+        }
 
-        # data = '{'+f'"node_address": "{BLOCKCHAIN_NODE_ADDRESS}"'+'}'
+        data = '{'+f'"node_address": "{BLOCKCHAIN_NODE_ADDRESS}"'+'}'
 
-        # response = requests.post(f'{node_address}/register_with', headers=headers, data=data)
-        # print(response.text)
+        response = requests.post(f'{node_address}/register_with', headers=headers, data=data)
+        print(response.text)
         return render(request, 'register_node_success.html', {'registered_node': node_address})
     else:
         return render(request, 'register_node.html')
@@ -342,46 +361,46 @@ def connected_node(request):
 
 # ------------Blockchain calls-----------------------
 
-@csrf_exempt
-def new_transaction(request):
-    if request.method == 'POST':
-        transaction_data = json.loads(request.body)
-        print(transaction_data)
-        required_fields = ["candidate", "voterhash"]
+# @csrf_exempt
+# def new_transaction(request):
+#     if request.method == 'POST':
+#         transaction_data = json.loads(request.body)
+#         print(transaction_data)
+#         required_fields = ["candidate", "voterhash"]
 
-        for field in required_fields:
-            if not transaction_data.get(field):
-                return JsonResponse({'error': 'Invalid transaction data'}, safe=False, status=404) 
+#         for field in required_fields:
+#             if not transaction_data.get(field):
+#                 return JsonResponse({'error': 'Invalid transaction data'}, safe=False, status=404) 
 
-        if (transaction_data["voterhash"] in blockchain.voted):
-            return JsonResponse({'error': 'You cannot vote more than once'}, status=400)
+#         if (transaction_data["voterhash"] in blockchain.voted):
+#             return JsonResponse({'error': 'You cannot vote more than once'}, status=400)
 
-        transaction_data["timestamp"] = str(datetime.datetime.now())
+#         transaction_data["timestamp"] = str(datetime.datetime.now())
 
-        blockchain.add_new_transaction(transaction_data)
+#         blockchain.add_new_transaction(transaction_data)
 
-        return JsonResponse("Success", safe=False, status=201)
-
-
-def get_chain(request):
-    chain_data = []
-    for block in blockchain.chain:
-        chain_data.append(block.__dict__)
-
-    data = {
-        "length": len(chain_data),
-        "chain": chain_data
-    }
-    return JsonResponse(data, safe=False, status=200)
+#         return JsonResponse("Success", safe=False, status=201)
 
 
-def mine_block(request):
-    result = blockchain.mine()
-    if not result:
-        return JsonResponse("No transactions in queue to mine", safe=False, status=404)
-    else:
-        return JsonResponse(f"Block #{blockchain.last_block.index} is mined. Your vote is now added to the blockchain", safe=False, status=201)
+# def get_chain(request):
+#     chain_data = []
+#     for block in blockchain.chain:
+#         chain_data.append(block.__dict__)
+
+#     data = {
+#         "length": len(chain_data),
+#         "chain": chain_data
+#     }
+#     return JsonResponse(data, safe=False, status=200)
 
 
-def pending_transaction(request):
-    return JsonResponse({'pending': blockchain.unconfirmed_transactions }, status=200)
+# def mine_block(request):
+#     result = blockchain.mine()
+#     if not result:
+#         return JsonResponse("No transactions in queue to mine", safe=False, status=404)
+#     else:
+#         return JsonResponse(f"Block #{blockchain.last_block.index} is mined. Your vote is now added to the blockchain", safe=False, status=201)
+
+
+# def pending_transaction(request):
+#     return JsonResponse({'pending': blockchain.unconfirmed_transactions }, status=200)

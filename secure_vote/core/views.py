@@ -277,7 +277,7 @@ def mine_success(request):
 
 def all_votes(request):
     vote_data = []
-    response = requests.get(f"{BLOCKCHAIN_NODE_ADDRESS}/get_chain")
+    response = requests.get(f"{BLOCKCHAIN_NODE_ADDRESS}/chain")
     if response.status_code == 200:
         chain_data = json.loads(response.content)
         for block in chain_data["chain"]:
@@ -287,15 +287,19 @@ def all_votes(request):
 
         print("final", vote_data)
     
-    # print(len(blockchain.chain))
-    # if len(blockchain.chain) > 1:
-    #     not_tampered = blockchain.is_valid_chain()
-    # else:
-    not_tampered = True
-    # print(not_tampered)
-    # return render(request, 'all_votes.html', {'vote_details': vote_data, 'chain_not_tampered': not_tampered})
+    response = requests.get(f"{BLOCKCHAIN_NODE_ADDRESS}/chain_validity")
+    if response.status_code == 200:
+        validity_message = json.loads(response.content)
+        is_valid = True
+        print(validity_message, is_valid)
+    elif response.status_code == 400:
+        validity_message = json.loads(response.content)
+        is_valid = False
+        print(validity_message, is_valid)
+    
+    return render(request, 'all_votes.html', {'vote_details': vote_data, 'validity_message': validity_message, 'is_valid': is_valid})
 
-    return render(request, 'all_votes.html', {'vote_details': vote_data})
+    # return render(request, 'all_votes.html', {'vote_details': vote_data})
 
 
 def fetch_votes_and_count():
@@ -311,12 +315,15 @@ def fetch_votes_and_count():
                 vote_count[j['candidate']] = 1
     return vote_count
 
+
+@login_required(login_url='login')
 def count_votes(request):
     data = fetch_votes_and_count()
     print("count_votes()", data)
     return render(request, 'count_votes.html', {'vote_count': data})
 
 
+@login_required(login_url='login')
 def chart_votes(request):
     data = fetch_votes_and_count()
     print("chart_votes()", data)

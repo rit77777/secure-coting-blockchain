@@ -345,6 +345,7 @@ def change_node(request):
     else:
         return render(request, 'change_node.html')
 
+
 @user_passes_test(lambda u: u.is_superuser)
 def register_node(request):
     if request.method == 'POST':
@@ -356,11 +357,12 @@ def register_node(request):
 
         data = '{'+f'"node_address": "{BLOCKCHAIN_NODE_ADDRESS}"'+'}'
 
-        response = requests.post(f'{node_address}/register_with', headers=headers, data=data)
-        print(response.text)
+        response = requests.post(f'{node_address}/register_with/', headers=headers, data=data)
+        print(response.content)
         return render(request, 'register_node_success.html', {'registered_node': node_address})
     else:
         return render(request, 'register_node.html')
+
 
 @user_passes_test(lambda u: u.is_superuser)
 def connected_node(request):
